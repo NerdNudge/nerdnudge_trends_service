@@ -105,8 +105,11 @@ public class UserTrendsSetter {
                         userEntity.setTopicsScore(new HashMap<>());
                     }
 
-                    userEntity.getTopicsRank().put(currentTopic, topicRank);
-                    userEntity.getTopicsScore().put(currentTopic, score);
+                    if(!userEntity.getTopicsRank().containsKey(currentTopic) || userEntity.getTopicsRank().get(currentTopic) > topicRank)
+                        userEntity.getTopicsRank().put(currentTopic, topicRank);
+
+                    if(!userEntity.getTopicsScore().containsKey(currentTopic) || userEntity.getTopicsScore().get(currentTopic) < topicRank)
+                        userEntity.getTopicsScore().put(currentTopic, score);
 
                     userEntities.put(userId, userEntity);
 
