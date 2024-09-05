@@ -2,8 +2,6 @@ package com.neurospark.nerdnudge.trends.utils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
-import com.neurospark.nerdnudge.trends.service.UserTrendsSetterConfiguration;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -54,33 +52,5 @@ public class Commons {
                 jsonObject.remove(oldestKey);
             }
         }
-    }
-
-    public static NerdPersistClient getUserPersistClient() {
-        UserTrendsSetterConfiguration userTrendsSetterConfiguration = UserTrendsSetterConfiguration.getInstance();
-        NerdPersistClient nerdPersistClient = new NerdPersistClient(
-                userTrendsSetterConfiguration.getPersistAddress(),
-                userTrendsSetterConfiguration.getPersistUsername(),
-                userTrendsSetterConfiguration.getPersistPassword(),
-                userTrendsSetterConfiguration.getUserBucketName(),
-                userTrendsSetterConfiguration.getUserScopeName(),
-                userTrendsSetterConfiguration.getUserCollectionName()
-        );
-
-        return nerdPersistClient;
-    }
-
-    public static NerdPersistClient getConfigPersistClient() {
-        UserTrendsSetterConfiguration userTrendsSetterConfiguration = UserTrendsSetterConfiguration.getInstance();
-        NerdPersistClient nerdPersistClient = new NerdPersistClient(
-                userTrendsSetterConfiguration.getPersistAddress(),
-                userTrendsSetterConfiguration.getPersistUsername(),
-                userTrendsSetterConfiguration.getPersistPassword(),
-                userTrendsSetterConfiguration.getConfigBucketName(),
-                userTrendsSetterConfiguration.getConfigScopeName(),
-                userTrendsSetterConfiguration.getConfigCollectionName()
-        );
-
-        return nerdPersistClient;
     }
 }
