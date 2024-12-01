@@ -6,8 +6,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.neurospark.nerdnudge.couchbase.service.NerdPersistClient;
+import com.neurospark.nerdnudge.metrics.metrics.Metric;
 import com.neurospark.nerdnudge.trends.dto.UserEntity;
 import com.neurospark.nerdnudge.trends.utils.Commons;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+@Slf4j
 @Service
 public class UserTrendsSetter {
     @Autowired
@@ -39,15 +42,18 @@ public class UserTrendsSetter {
 
     @Scheduled(fixedDelayString = "${user.trends.refresh.frequency}")
     public void updateUserTrends() {
-        System.out.println("--------------------NERD NUDGE USER TRENDS UPDATE -> START--------------------");
+        long startTime = System.currentTimeMillis();
+        log.info("--------------------NERD NUDGE USER TRENDS UPDATE -> START--------------------");
         try {
             fetchUsers();
             saveUserTrendsToPersist();
         } catch (Exception ex) {
-            System.out.println("[ERROR] Issue Updating User Trends");
+            log.error("Issue Updating User Trends: {}", ex.getMessage());
             ex.printStackTrace();
         }
-        System.out.println("--------------------NERD NUDGE USER TRENDS UPDATE -> END--------------------");
+        long endTime = System.currentTimeMillis();
+        new Metric.MetricBuilder().setName("trendsSet").setUnit(Metric.Unit.MILLISECONDS).setValue((endTime - startTime)).build();
+        log.info("--------------------NERD NUDGE USER TRENDS UPDATE -> END--------------------");
     }
 
     private void fetchUsers() {
@@ -57,7 +63,7 @@ public class UserTrendsSetter {
             String currentTopic = allTopics.get(i);
             int totalPages = getTotalPages(currentTopic);
             int topicRank = 0;
-            System.out.println(new Date() + "Fetching for topic: " + currentTopic + ", total Pages: " + totalPages);
+            log.info("Fetching Trends for topic: {}, total Pages: {}", currentTopic, totalPages);
             for (int k = 1; k <= totalPages; k++) {
                 int offset = (k - 1) * pageSize;
                 String topicRankQuery = getTopicRankQueryString(currentTopic, offset);
@@ -82,9 +88,6 @@ public class UserTrendsSetter {
                         userEntity.getTopicsScore().put(currentTopic, score);
 
                     userEntities.put(userId, userEntity);
-
-                    if(topicRank <= 10)
-                        System.out.println(userEntity);
                 }
             }
         }
@@ -117,7 +120,7 @@ public class UserTrendsSetter {
                 thisDayTrend.add(userTopicRanks.get(currentTopicId));
 
                 currentTopicTrend.add(Commons.getDaystamp(), thisDayTrend);
-                Commons.housekeepDayJsonObject(currentTopicTrend, 30);
+                Commons.housekeepDayJsonObject(currentTopicTrend, 12);
                 trendsObject.add(currentTopicId, currentTopicTrend);
             }
             userTrends.add("trends", trendsObject);
@@ -154,12 +157,12 @@ public class UserTrendsSetter {
 
     private int getTotalPages(String topic) {
         String queryString = getCountsQuery(topic);
-        System.out.println(queryString);
+        log.info("Query for the topic: {} ---> {}", topic, queryString);
         QueryResult result = userProfilesPersist.getDocumentsByQuery(queryString);
         for (com.couchbase.client.java.json.JsonObject row : result.rowsAsObject()) {
             JsonObject thisResult = jsonParser.parse(row.toString()).getAsJsonObject();
             if(thisResult.has("count")) {
-                System.out.println("TOPIC: " + topic + ":::: COUNTS: " + thisResult.get("count").getAsInt());
+                log.info("Topic: {} --> Counts: {}", topic, thisResult.get("count").getAsInt());
                 return (int) Math.ceil((double) thisResult.get("count").getAsInt() / pageSize);
             }
         }
@@ -184,7 +187,7 @@ public class UserTrendsSetter {
 
 
     private List<String> getAllTopics() {
-        System.out.println("getting all topics.");
+        log.info("Getting all topics.");
         JsonObject topicCodeToTopicNameMapping = configPersist.get("collection_topic_mapping");
         List<String> allTopics = new ArrayList<>();
         allTopics.add("global");
